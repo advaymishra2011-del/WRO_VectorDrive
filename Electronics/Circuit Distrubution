@@ -1,0 +1,30 @@
+2S LiPo
+      │
+      ├──► 5 V / 5 A Buck
+      │          │
+      │          ├── Pi 5
+      │          ├── Pico
+      │          └── MG90S Servo
+      │
+      └──► DRV8833 VM (battery voltage)
+                 │
+              N20 Motor
+
+Pi 5
+ ├── Camera Module 3
+ ├── I²C
+ │    ├── TCA9548A (3.3v)
+ │    │     ├── VL53L0X #1
+ │    │     ├── VL53L0X #2
+ │    │     ├── VL53L0X #3
+ │    │     ├── VL53L0X #4
+ │    │     └── VL53L0X #5
+ │    ├── TCS34725 Color Sensor
+ │    └── BNO085 (3.3v)
+ └── UART → Pico
+
+Pico
+ ├── PWM → DRV8833
+ ├── PWM → MG90S
+ ├── Digital Input ← Touch Sensor (NO/NC) (x4)
+ └── Encoder inputs
