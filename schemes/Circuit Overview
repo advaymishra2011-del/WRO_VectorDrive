@@ -1,14 +1,14 @@
 2S LiPo
-      │
-      ├──► 5 V / 5 A Buck
-      │          │
-      │          ├── Pi 5
-      │          ├── Pico
-      │          └── MG90S Servo
-      │
-      └──► DRV8833 VM (battery voltage)
-                 │
-              N20 Motor
+   │
+   ▼
+5 V / 5 A Buck
+   │
+   ├──► Pi 5
+   ├──► Pico
+   ├──► MG90S Servo
+   └──► DRV8833 VM
+              │
+              └──► N20 Motor (5 V)
 
 Pi 5
  ├── Camera Module 3
