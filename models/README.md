@@ -1,5 +1,5 @@
 # 3D Models
-Overview: Small, 11x10cm layer style design
+**Overview**: Small, 11x10cm layer style design
 
 ### Bottom Layer
 **Front**: Parallel Ackerman Style steering setup controlled with parallel motor control
