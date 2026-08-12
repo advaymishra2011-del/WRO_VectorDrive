@@ -1,3 +1,5 @@
+The electronics architecture separates the robot into three functional layers:
+
 2S LiPo
    │
    ▼
