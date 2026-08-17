@@ -1,6 +1,6 @@
-import matplotlib.pyplot as plt
 import numpy as np
 import cv2
+from picamera2 import Picamera2
 
 # 2. Optimized HSV Boundaries (Tweak based on your room's light)
 LOWER_GREEN = np.array([35, 60, 60])
@@ -10,24 +10,29 @@ UPPER_GREEN = np.array([85, 255, 255])
 LOWER_RED1, UPPER_RED1 = np.array([0, 70, 70]), np.array([10, 255, 255])
 LOWER_RED2, UPPER_RED2 = np.array([170, 70, 70]), np.array([180, 255, 255])
 
-SCREEN_MIDDLE_X = 320
 RESOLUTION = (640, 480)
 
 kernel = np.ones((3, 3), np.uint8)
 
-cap = cv2.VideoCapture(0)
+#Pi cam
+picam2 = Picamera2()
+
+config = picam2.create_video_configuration(
+    main={"size": RESOLUTION, "format": "RGB888"}
+)
+
+picam2.configure(config)
+picam2.start()
+
 
 
 def get_frame():
-    ok, frame = cap.read()
-    if not ok or frame is None:
+    frame = picam2.capture_array()
+
+    if frame is None:
         return None
     
-    frame = cv2.resize(frame, RESOLUTION)  # Resize for consistent processing
-
-    if not cap.isOpened():
-        print("Error: Could not open webcam. Check USB connection or privacy settings.")
-        exit()
+    frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR) 
 
     return frame
 
@@ -164,10 +169,7 @@ while True:
     frame = cv(frame)
 
     
-    cv2.imshow('Webcam', frame)
+    #cv2.imshow('Pi cam', frame)
     
-    if cv2.waitKey(1) == ord('q'):
-        break
 
-cap.release()
 cv2.destroyAllWindows()
