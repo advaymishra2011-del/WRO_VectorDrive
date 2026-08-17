@@ -1,6 +1,6 @@
 import numpy as np
 import cv2
-from picamera2 import Picamera2
+#from picamera2 import Picamera2
 
 # 2. Optimized HSV Boundaries (Tweak based on your room's light)
 LOWER_GREEN = np.array([35, 60, 60])
@@ -15,26 +15,38 @@ RESOLUTION = (640, 480)
 kernel = np.ones((3, 3), np.uint8)
 
 #Pi cam
-picam2 = Picamera2()
+# picam2 = Picamera2()
 
-config = picam2.create_video_configuration(
-    main={"size": RESOLUTION, "format": "RGB888"}
-)
+# config = picam2.create_video_configuration(
+#     main={"size": RESOLUTION, "format": "RGB888"}
+# )
 
-picam2.configure(config)
-picam2.start()
+# picam2.configure(config)
+# picam2.start()
 
-
+#Computer cam
+cap = cv2.VideoCapture(0)
 
 def get_frame():
-    frame = picam2.capture_array()
-
-    if frame is None:
+    ok, frame = cap.read()
+    if not ok or frame is None:
         return None
     
-    frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR) 
-
+    frame = cv2.resize(frame, (640, 480))
     return frame
+
+
+
+
+# def get_frame():
+#     frame = picam2.capture_array()
+
+#     if frame is None:
+#         return None
+    
+#     frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR) 
+
+#     return frame
 
 
 
@@ -167,9 +179,11 @@ while True:
         break
 
     frame = cv(frame)
-
+    cv2.imshow('cam', frame)
     
     #cv2.imshow('Pi cam', frame)
-    
+    if cv2.waitKey(1) == ord('q'):
+        break
 
+cap.release()
 cv2.destroyAllWindows()

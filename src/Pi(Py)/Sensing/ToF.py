@@ -17,13 +17,16 @@ tofs = {
     "rear_right": adafruit_vl53l0x.VL53L0X(tca[4])
 }
 
-distances = {
-    name: sensor.range
-    for name, sensor in tofs.items()
-}
+def getDistances(tofs):
+    distances = {
+        name: sensor.range
+        for name, sensor in tofs.items()
+    }
+    return distances
 
 try:
     while True:
+        distances = getDistances(tofs)
         print("DISTANCES: ", distances)
 except KeyboardInterrupt:
     print("Exiting...")
