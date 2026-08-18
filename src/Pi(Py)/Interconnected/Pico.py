@@ -1,5 +1,4 @@
 import serial
-import time
 
 pico = serial.Serial(
     #"/dev/ttyAMA0", Check on pi

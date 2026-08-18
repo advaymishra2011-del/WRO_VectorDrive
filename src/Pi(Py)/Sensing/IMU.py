@@ -44,6 +44,16 @@ try:
         print("MAG: ",mx, my, mz)
 
         time.sleep(0.1)
-        
+
 except KeyboardInterrupt:
     print("Exiting...")
+
+def getRot(bno085):
+    gx, gy, gz = bno085.gyro
+    return gz
+
+def wait(deg, bno085):
+    while gz<=deg:
+        gx, gy, gz = bno085.gyro
+        time.sleep(0.005)
+    return

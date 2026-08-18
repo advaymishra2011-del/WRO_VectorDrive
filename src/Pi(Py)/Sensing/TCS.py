@@ -22,3 +22,7 @@ try:
         time.sleep(1)
 except KeyboardInterrupt:
     print("Exiting...")
+
+def getColor():
+    rgb = tcs.color_rgb_bytes
+    return rgb
