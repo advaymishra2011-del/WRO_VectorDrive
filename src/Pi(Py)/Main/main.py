@@ -5,7 +5,14 @@ import numpy as np
 import serial
 import board
 import busio
+import threading
+
 from picamera2 import Picamera2
+from adafruit_bno08x.i2c import BNO08X_I2C
+import adafruit_tcs34725
+import adafruit_tca9548a
+import adafruit_vl53l0x
+
 
 from Camera.CVcam import get_frame, cv
 from Pico import sendCommand, receiveData
@@ -38,7 +45,6 @@ picam2.start()  # Initialize the camera configuration
 
 #-----------------------------------------------------SENSOR SETUP-----------------------------------------------------
 #================BNO===========================
-from adafruit_bno08x.i2c import BNO08X_I2C
 
 from adafruit_bno08x import (
     BNO_REPORT_ACCELEROMETER,
@@ -68,7 +74,6 @@ pico = serial.Serial(
 )
 
 #================================TCS===============================
-import adafruit_tcs34725
 
 i2c = board.I2C()
 
@@ -76,8 +81,7 @@ tcs = adafruit_tcs34725.TCS34725(i2c)
 
 
 #=================================ToF=============================
-import adafruit_tca9548a
-import adafruit_vl53l0x
+
 
 # Main Pi I²C bus
 i2c = board.I2C()
@@ -97,7 +101,7 @@ tofs = {
 
 #---------------------------------------------MOVEMENT PROTOCOLS--------------------------------------
 #==========================BACK ALIGN========================
-val2 = [2, 0.01, 0.01]
+val2 = [2, 0.01, 0.01] #PID for back
 
 def mod(x):
     if x<0:
@@ -108,7 +112,7 @@ def mod(x):
         return None
 
 def backPID(speed, tofs, val2):
-    sendCommand(-100, 0)
+    sendCommand(speed, 0)
     
     distances = getDistances(tofs)
     left = distances["rear_left"]
@@ -118,13 +122,13 @@ def backPID(speed, tofs, val2):
         error = left - right
     elif speed>=0:
         error = right - left
-    last_error = error
     integral += error
     derivative = error - last_error
+    last_error = error
 
     pid = (val2[0]*error) + (val2[1]*integral) + (val2[2]*derivative)
 
-    sendCommand(-100, pid)
+    sendCommand(speed, pid)
     time.sleep(0.01)
 
 def wallAlign(tofs, dist, val2, buffer):
@@ -145,18 +149,17 @@ def wallAlign(tofs, dist, val2, buffer):
             backPID(-100, tofs, val2)
 
 #=================================WALL FOLLOW=====================================
-import threading
 
 stop_switch = threading.Event()
 worker_thread = None
 
-val = [2, 0.01, 0.01]
+val = [2, 0.01, 0.01] #PID for tofs
 
-def loop_worker(switch, tofs, dist, side, val, bno):
+def loop_worker(switch, tofs, dist, side, val, bno, speed):
     gz = 0
     gz_set = getRot(bno)
     while not switch.is_set():
-        sendCommand(200, 0)
+        sendCommand(speed, 0)
         tof = getDistances(tofs)[side]
 
         if side == "left":
@@ -170,9 +173,9 @@ def loop_worker(switch, tofs, dist, side, val, bno):
 
         pid = (val[0]*error)+(val[1]*integral)+(val[2]*derivative)
         if gz < 31:
-            sendCommand(200, pid)
+            sendCommand(speed, pid)
         elif gz > 31:
-            sendCommand(200, 0)
+            sendCommand(speed, 0)
             time.sleep(0.05)
 
         gz = mod(getRot(bno) - gz_set)
@@ -181,13 +184,13 @@ def loop_worker(switch, tofs, dist, side, val, bno):
         
 
 
-def startPid(tofs, dist, side, val):
+def startPid(tofs, dist, side, val, bno, speed):
     global worker_thread
     if worker_thread and worker_thread.is_alive():
         return
         
     stop_switch.clear()
-    worker_thread = threading.Thread(target=loop_worker, args=(stop_switch, tofs, dist, side, val), daemon=True)
+    worker_thread = threading.Thread(target=loop_worker, args=(stop_switch, tofs, dist, side, val, bno, speed), daemon=True)
     worker_thread.start()
 
 
@@ -207,10 +210,89 @@ def turn(speed, sharpness, deg, bno):
         time.sleep(0.005)
     sendCommand(0, 0)
 
+
+#=============================OBSTACLE ALGORITHM=======================================
+val3 = [2, 0.01, 0.01] #PID for cx
+touch_front_left = 0
+touch_front_right = 1
+
+def obstacleAvoidance(tofs, bno, val3, speed, val):
+    run = True
+    while run:
+        frame = get_frame()
+        two = cv(frame)
+        distances = getDistances(tofs)
+        front = distances["front"]
+        left = distances["left"]
+        right = distances["right"]
+
+        dist = 10
+        buffer = 7
+        dist_front = 10
+        if two[0]["color"] == "RED":
+            if left > dist and front > dist_front:
+                #PID to stay on fixed path with obstacle at fixed distance from path using x coordinate
+                pidcx(val3, RESOLUTION[0] // 3, speed)
+            elif left <= dist and front > dist_front:
+                #When next to the obstacle uses PID to "wall follow" on the obstacle until the obstacle ends
+                startPid(tofs, 9, "left", val, bno, 150)
+                while(L<= (dist+buffer)):
+                    L = getDistances(tofs)["left"]
+                    time.sleep(0.01)
+                stopPid()
+                sendCommand(100, 0)
+                time.sleep(0.5)
+                return
+            elif front <= dist_front or receiveData()[touch_front_left] == 1 or receiveData()[touch_front_right] == 1:
+                #Avoid hitting obstacle
+                interrupt("right", bno)
+            else:
+                #In case some error causes nothing to be true just move forward
+                sendCommand(100, 0)
+        if two[0]["color"] == "GREEN": #Reversed for green (left-right, cx on other side)
+            if right > dist and front > dist_front:
+                pidcx(val3, (2*RESOLUTION[0]) // 3, speed)
+            elif right <= dist and front > dist_front:
+                startPid(tofs, 9, "right", val, bno, 150)
+                while(R <= (dist+buffer)):
+                    R = getDistances(tofs)["right"]
+                    time.sleep(0.01)
+                stopPid()
+            elif front <= dist_front or receiveData()[touch_front_left] == 1 or receiveData()[touch_front_right] == 1:
+                interrupt("left", bno)
+            else:
+                sendCommand(100, 0)
+
+             
+
+def interrupt(dir, bno):
+    if dir == "left":
+        sign = -1
+    elif dir == "right":
+        sign = 1
+    else: return
+    turn(-150, sign*(-20), sign*20, bno)
+    turn(150, sign*10, sign*15, bno)
+    turn(150, sign*(-15), sign*(-35), bno)
+
     
 
+def pidcx(val3, cx_desired, speed):
+    frame = get_frame()
+    cx = cv(frame)[0]["cx"]
+
+    error = cx_desired - cx
+    integral += error
+    derivative = error - last_error
+    last_error = error
+
+    pid = (val3[0]*error) + (val3[1]*integral) + (val3[2]*derivative)
+
+    sendCommand(speed, pid)
 
 
 
-    
-    
+
+
+
+                    

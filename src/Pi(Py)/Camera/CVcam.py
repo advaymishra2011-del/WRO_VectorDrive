@@ -3,11 +3,11 @@ import numpy as np
 from picamera2 import Picamera2
 import cv2
 
-# 2. Optimized HSV Boundaries (Tweak based on your room's light)
+# Green
 LOWER_GREEN = np.array([35, 60, 60])
 UPPER_GREEN = np.array([85, 255, 255])
 
-# Red spans across the HSV 0/180 boundary
+# Red 
 LOWER_RED1, UPPER_RED1 = np.array([0, 70, 70]), np.array([10, 255, 255])
 LOWER_RED2, UPPER_RED2 = np.array([170, 70, 70]), np.array([180, 255, 255])
 
@@ -15,7 +15,7 @@ RESOLUTION = (640, 480)
 
 kernel = np.ones((3, 3), np.uint8)
 
-#Pi cam
+#Pi cam 
 picam2 = Picamera2()
 
 config = picam2.create_video_configuration(
@@ -95,19 +95,19 @@ def cv(frame):
             })
 
     # Sort candidates by area and keep the two largest, Left-Right      
-    candidates.sort(key=lambda c: c["area"], reverse=True)
-    candidates = candidates[:2]
+    top_two = sorted(candidates, key=lambda c: c["area"], reverse=True)[:2]
 
-    candidates.sort(key=lambda c: c["cx"])
+    if len(top_two) == 2:
+        if top_two[0]["cx"] < top_two[1]["cx"]:
+            top_two[0]["dir"], top_two[1]["dir"] = "left", "right"
+        else:
+            top_two[0]["dir"], top_two[1]["dir"] = "right", "left"
+    elif len(top_two) == 1:
+        top_two[0]["dir"] = "center"
+    else:
+        top_two[0] = None
 
-    if len(candidates) == 2:
-
-        left_color = candidates[0]["color"]
-        right_color = candidates[1]["color"]
-
-        return left_color, right_color
-    else: 
-        return None, None
+    return top_two
 
 
     
