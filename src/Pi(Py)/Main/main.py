@@ -336,7 +336,7 @@ def gyroPid(bno, gz_0, speed, val4, dist1, rot):
     if rot is not None: 
         sendCommand(speed, 0, rot)
     if dist1 is not None:
-        sendCommand(200, 0)
+        sendCommand(speed, 0)
     while True:
         gz = (getRot(bno)%360)
         error = gz - gz_0
@@ -348,9 +348,10 @@ def gyroPid(bno, gz_0, speed, val4, dist1, rot):
 
         sendCommand(None, pid)
 
+        if rot is not None and receiveData()[4] == 1: break
+
         front = getDistances()["front"]
-        if dist1 is not None:
-            if front <= dist1: break
+        if dist1 is not None and front <= dist1: break
 
         time.sleep(0.01)
 
