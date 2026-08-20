@@ -161,7 +161,7 @@ def cv(frame):
         # If we don't have exactly two candidates
         cv2.putText(
             frame,
-            f"Candidates: {len(candidates)}",
+            f"Candidates: {len(candidates)}"
             (20, 40),
             cv2.FONT_HERSHEY_SIMPLEX,
             0.8,

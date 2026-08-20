@@ -34,7 +34,9 @@ def get_frame():
     
     frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR) 
 
-    return frame
+    cropped = frame[0:(RESOLUTION[1]//2), 0:RESOLUTION[0]]
+
+    return cropped
 
 def cv(frame):
 
@@ -108,6 +110,43 @@ def cv(frame):
         top_two[0] = None
 
     return top_two
+
+
+LOWER_PURPLE = np.array([125, 50, 50])
+UPPER_PURPLE = np.array([160, 255, 255])
+
+def detect_parking(frame):
+
+    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+
+    mask = cv2.inRange(hsv, LOWER_PURPLE, UPPER_PURPLE)
+    mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
+
+    contours, _ = cv2.findContours(
+        mask,
+        cv2.RETR_EXTERNAL,
+        cv2.CHAIN_APPROX_SIMPLE
+    )
+
+    largest = None
+    largest_area = 0
+
+    for c in contours:
+
+        area = cv2.contourArea(c)
+
+        if area > largest_area:
+            largest_area = area
+            largest = c
+
+    if largest is None or largest_area < 600:
+        return None
+
+    x, y, w, h = cv2.boundingRect(largest)
+
+    cx = x + w // 2
+
+    return cx
 
 
     

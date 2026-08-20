@@ -14,7 +14,7 @@ import adafruit_tca9548a
 import adafruit_vl53l0x
 
 
-from Camera.CVcam import get_frame, cv
+from Camera.CVcam import get_frame, cv, detect_parking
 from Pico import sendCommand, receiveData
 from Sensing.ToF import getDistances
 from Sensing.IMU import getRot
@@ -72,6 +72,11 @@ pico = serial.Serial(
     115200,
     timeout=0.1
 )
+
+touch_front_left = 0
+touch_front_right = 1
+touch_rear_left = 2
+touch_rear_right = 3
 
 #================================TCS===============================
 
@@ -141,6 +146,10 @@ def wallAlign(tofs, dist, val2, buffer):
     
     while(gap>=dist):
         backPID(-100, tofs, val2)
+        if receiveData()[touch_rear_left] == 1:
+            turn(100, 20, 15, bno)
+        elif receiveData()[touch_rear_right] == 1:
+            turn(100, -20, -15, bno)
 
     while mod(left-right) >= buffer:
         for i in range(100):
@@ -172,13 +181,17 @@ def loop_worker(switch, tofs, dist, side, val, bno, speed):
         last_error = error
 
         pid = (val[0]*error)+(val[1]*integral)+(val[2]*derivative)
+
+        gz = mod(getRot(bno) - gz_set)
+
         if gz < 31:
             sendCommand(speed, pid)
         elif gz > 31:
             sendCommand(speed, 0)
             time.sleep(0.05)
 
-        gz = mod(getRot(bno) - gz_set)
+        if receiveData()[touch_front_right] == 1: interrupt("left", bno)
+        elif receiveData()[touch_front_left] == 1: interrupt("right", bno)
         
         time.sleep(0.05)  
         
@@ -205,18 +218,30 @@ def turn(speed, sharpness, deg, bno):
     gz = 0
     gz_set = getRot(bno)
     sendCommand(speed, sharpness)
-    while mod(gz) < mod(deg):
-        gz = getRot(bno) - gz_set
-        time.sleep(0.005)
+    if deg > 0:
+        while gz < deg:
+            gz = getRot(bno) - gz_set
+
+            if receiveData()[touch_front_right] == 1: interrupt("left", bno)
+            elif receiveData()[touch_front_left] == 1: interrupt("right", bno)
+                    
+            time.sleep(0.005)
+    elif deg < 0:
+        while gz > deg:
+            gz = getRot(bno) - gz_set
+
+            if receiveData()[touch_front_right] == 1: interrupt("left", bno)
+            elif receiveData()[touch_front_left] == 1: interrupt("right", bno)
+                    
+            time.sleep(0.005)
     sendCommand(0, 0)
 
 
 #=============================OBSTACLE ALGORITHM=======================================
 val3 = [2, 0.01, 0.01] #PID for cx
-touch_front_left = 0
-touch_front_right = 1
 
-def obstacleAvoidance(tofs, bno, val3, speed, val):
+
+def obstacleAvoidance(tofs, bno, val3, speed, val, color):
     run = True
     while run:
         frame = get_frame()
@@ -229,10 +254,10 @@ def obstacleAvoidance(tofs, bno, val3, speed, val):
         dist = 10
         buffer = 7
         dist_front = 10
-        if two[0]["color"] == "RED":
+        if color == "RED":
             if left > dist and front > dist_front:
                 #PID to stay on fixed path with obstacle at fixed distance from path using x coordinate
-                pidcx(val3, RESOLUTION[0] // 3, speed)
+                pidcx(val3, RESOLUTION[0] // 3, speed, color, two)
             elif left <= dist and front > dist_front:
                 #When next to the obstacle uses PID to "wall follow" on the obstacle until the obstacle ends
                 startPid(tofs, 9, "left", val, bno, 150)
@@ -240,8 +265,8 @@ def obstacleAvoidance(tofs, bno, val3, speed, val):
                     L = getDistances(tofs)["left"]
                     time.sleep(0.01)
                 stopPid()
-                sendCommand(100, 0)
-                time.sleep(0.5)
+                sendCommand(100, 0, 1.5)
+                run = False
                 return
             elif front <= dist_front or receiveData()[touch_front_left] == 1 or receiveData()[touch_front_right] == 1:
                 #Avoid hitting obstacle
@@ -249,19 +274,24 @@ def obstacleAvoidance(tofs, bno, val3, speed, val):
             else:
                 #In case some error causes nothing to be true just move forward
                 sendCommand(100, 0)
-        if two[0]["color"] == "GREEN": #Reversed for green (left-right, cx on other side)
+        if color == "GREEN": #Reversed for green (left-right, cx on other side)
             if right > dist and front > dist_front:
-                pidcx(val3, (2*RESOLUTION[0]) // 3, speed)
+                pidcx(val3, (2*RESOLUTION[0]) // 3, speed, color, two)
             elif right <= dist and front > dist_front:
                 startPid(tofs, 9, "right", val, bno, 150)
                 while(R <= (dist+buffer)):
                     R = getDistances(tofs)["right"]
                     time.sleep(0.01)
                 stopPid()
+                gyroPid(bno, getRot(), 150, val4, None, 1.5)
+                
+                run = False
+                return
             elif front <= dist_front or receiveData()[touch_front_left] == 1 or receiveData()[touch_front_right] == 1:
                 interrupt("left", bno)
             else:
-                sendCommand(100, 0)
+                gyroPid(bno, getRot(), 150, val4, None, 1.5)
+            time.sleep(0.01)
 
              
 
@@ -277,9 +307,17 @@ def interrupt(dir, bno):
 
     
 
-def pidcx(val3, cx_desired, speed):
-    frame = get_frame()
-    cx = cv(frame)[0]["cx"]
+def pidcx(val3, cx_desired, speed, color, two):
+    if two[0] is not None and two[0]["color"] == color:
+        i = 0
+    elif two[1] is not None and two[1]["color"] == color:
+        i = 1
+    else:
+        sendCommand(150, 0)
+        return
+
+    cx = two[i]["cx"]
+    # cx = cv(frame)[0]["cx"]
 
     error = cx_desired - cx
     integral += error
@@ -289,6 +327,34 @@ def pidcx(val3, cx_desired, speed):
     pid = (val3[0]*error) + (val3[1]*integral) + (val3[2]*derivative)
 
     sendCommand(speed, pid)
+
+    return
+
+val4 = [2, 0.001, 0.001]
+
+def gyroPid(bno, gz_0, speed, val4, dist1, rot):
+    if rot is not None: 
+        sendCommand(speed, 0, rot)
+    if dist1 is not None:
+        sendCommand(200, 0)
+    while True:
+        gz = (getRot(bno)%360)
+        error = gz - gz_0
+        integral += error
+        derivative = error - last_error
+        last_error = error
+
+        pid = (val4[0]*error) + (val4[1]*integral) + (val4[2]*derivative)
+
+        sendCommand(None, pid)
+
+        front = getDistances()["front"]
+        if dist1 is not None:
+            if front <= dist1: break
+
+        time.sleep(0.01)
+
+    return
 
 
 

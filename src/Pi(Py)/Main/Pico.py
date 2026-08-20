@@ -6,8 +6,15 @@ pico = serial.Serial(
     timeout=0.1
 )
 
-def sendCommand(MotorSpeed, Steering):
-    cmd = f"{MotorSpeed},{Steering}\n"
+def sendCommand(MotorSpeed, Steering, rot = None):
+    if MotorSpeed is None:
+        MotorSpeed = 123456789
+    if Steering is None:
+        Steering = 123456789
+    if rot is None:
+        rot = 123456789
+        
+    cmd = f"{MotorSpeed},{Steering},{rot}\n"
     try:
         pico.write(cmd.encode())
     except serial.SerialException as e:
