@@ -142,13 +142,15 @@ def park(turndir, sign):
         turn(-200, sign*30, sign*(-180), bno)
         wallAlign(tofs, 3, val2, 4)
         quit
-    
-        
 
+#=========================START BUTTON==============================
+from gpiozero import Button
 
-        
-        
+switch = Button(2)
+
 #Algorithm
+switch.wait_for_press()
+print("Starting...")
 Run = True
 while Run:
     gz_0 = getRot(bno)
