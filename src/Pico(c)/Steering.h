@@ -1,13 +1,12 @@
-#include <servo.h>
+#include <Servo.h>
 
-#DEFINE SERVO_PIN 9
+const int SERVO_PIN = 9;
+int servo_center = y; //Test
 
-#DEFINE left -15
-#DEFINE right 15
-
-Servo steer;
+Servo steerServo;
 
 //-------------------------------------------SERVO---------------------------------------------------
-void steer(int deg) {
-  steer.write(deg);
+void steer(int steering) {
+  float deg = map(steering, -30, 30, -x, x) //Test
+  steerServo.write(servo_center + deg);
 }
