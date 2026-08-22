@@ -21,7 +21,7 @@ Documentation for team Vector Drive for WRO Future Engineers 2026
 ### Structure
 - Compact chasis structure and built to be small yet powerful: Just 11x10cm but storing 300+g of electronics components such as Pi5 for high speed processing
 - Box like, built around battery size
-- Simple parallel-ackerman style steering and spur gear rear wheel drive to minimize space and not overcomplicate
+- Simple parallel-ackerman style steering and spur gear rear wheel drive to minimize space and not overcomplicate it
 
 
 
