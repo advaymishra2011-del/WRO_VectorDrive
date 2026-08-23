@@ -107,7 +107,7 @@ def cv(frame):
     elif len(top_two) == 1:
         top_two[0]["dir"] = "center"
     else:
-        top_two[0] = None
+        top_two = []
 
     return top_two
 
@@ -148,5 +148,68 @@ def detect_parking(frame):
 
     return cx
 
+last_print = 0
 
+try:
+    while True:
+
+        start = time.perf_counter()
+
+        frame = get_frame()
+
+        if frame is None:
+            continue
+
+        pillars = cv(frame)
+        parking_x = detect_parking(frame)
+
+        # Actual processing FPS
+        elapsed = time.perf_counter() - start
+        fps = 1 / elapsed if elapsed > 0 else 0
+
+        now = time.time()
+
+        if now - last_print >= 0.2:
+            last_print = now
+
+            # Clear terminal
+            print("\033[2J\033[H", end="")
+
+            print("========================================")
+            print("          PI 5 CAMERA / CV")
+            print("========================================")
+            print(f"FPS:       {fps:6.1f}")
+            print(f"Frame:     {frame.shape[1]} x {frame.shape[0]}")
+            print("----------------------------------------")
+
+            print("PILLARS:")
+
+            if len(pillars) == 0:
+                print("  None detected")
+
+            else:
+                for p in pillars:
+                    print(
+                        f"  {p['dir']:>6} | "
+                        f"{p['color']:<5} | "
+                        f"cx={p['cx']:3d} | "
+                        f"cy={p['cy']:3d} | "
+                        f"area={p['area']:7.0f}"
+                    )
+
+            print("----------------------------------------")
+
+            if parking_x is None:
+                print("Parking:  None")
+            else:
+                print(f"Parking X: {parking_x}")
+
+            print("========================================")
+            print("Ctrl+C to stop")
+
+except KeyboardInterrupt:
+    print("\nStopping camera...")
+
+finally:
+    picam2.stop()
     

@@ -3,7 +3,7 @@ from signal import pause
 import datetime
 
 #Pin
-switch = Button(2)
+switch = Button(5)
 
 def switch_pressed():
     print("Switch Pressed")
