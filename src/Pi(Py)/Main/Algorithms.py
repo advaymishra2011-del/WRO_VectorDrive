@@ -1,6 +1,6 @@
 import time
 import cv2
-from flask import config
+#from flask import config
 import numpy as np
 import serial
 import board
@@ -56,7 +56,7 @@ from adafruit_bno08x import (
 i2c = busio.I2C(
     board.SCL,
     board.SDA,
-    frequency=400000
+    frequency=100000
 )
 
 bno = BNO08X_I2C(i2c)
@@ -68,8 +68,8 @@ bno.enable_feature(BNO_REPORT_ROTATION_VECTOR)
 
 #================================PICO===========================
 pico = serial.Serial(
-    #"/dev/ttyAMA0", Check on pi
-    115200,
+    "/dev/serial0",
+    baudrate=115200,
     timeout=0.1
 )
 
@@ -151,11 +151,19 @@ def wallAlign(tofs, dist, val2, buffer):
         elif receiveData()[touch_rear_right] == 1:
             turn(100, -20, -15, bno)
 
+        distances = getDistances(tofs)
+        left = distances["rear_left"]
+        right = distances["rear_right"]
+        gap = min(left, right)
+
     while mod(left-right) >= buffer:
         for i in range(100):
             backPID(100, tofs, val2)
         for i in range(100):
             backPID(-100, tofs, val2)
+
+        left = distances["rear_left"]
+        right = distances["rear_right"]
 
 #=================================WALL FOLLOW=====================================
 
