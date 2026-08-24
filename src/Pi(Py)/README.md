@@ -1,4 +1,4 @@
-# Pi5 Code 
+# Pi3 Code 
 Computer vision and sensor control, the main hub of the bot
 
 ## Computer Vision (CV)
