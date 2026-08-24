@@ -3,16 +3,16 @@ The electronics architecture separates the robot into three functional layers:
 2S LiPo
    │
    ▼
-5 V / 5 A Buck
+2 5V 3A Bucks
    │
-   ├──► Pi 5
+   ├──► Pi 3
    ├──► Pico
    ├──► MG90S Servo
    └──► DRV8833 VM
               │
               └──► N20 Motor (5 V)
 
-Pi 5
+Pi 3
  ├── Camera Module 3
  ├── I²C
  │    ├── TCA9548A (3.3v)
