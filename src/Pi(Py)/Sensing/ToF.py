@@ -24,7 +24,7 @@ def getDistances(tofs):
 
     for name, sensor in tofs.items():
         try:
-            distances[name] = sensor.range
+            distances[name] = (sensor.range / 10)
 
         except (OSError, RuntimeError) as e:
             print(f"{name} ERROR: {repr(e)}")
