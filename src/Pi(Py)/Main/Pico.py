@@ -1,52 +1,70 @@
 import serial
+import time
 
 pico = serial.Serial(
-    "/dev/ttyAMA0", #Check on pi
-    115200,
-    timeout=0.1
+    "/dev/serial0",
+    baudrate=115200,
+    timeout=1
 )
 
-def sendCommand(MotorSpeed, Steering, rot = 0):
+
+def sendCommand(MotorSpeed, Steering, rot=0):
     if MotorSpeed is None:
         MotorSpeed = "None"
+
     if Steering is None:
         Steering = "None"
+
     if rot is None:
         rot = 0
-        
+
     cmd = f"C,{MotorSpeed},{Steering},{rot}\n"
+
     try:
         pico.write(cmd.encode())
+        print("PI -> PICO:", cmd.strip())
+        return "Success"
+
     except serial.SerialException as e:
+        print("SEND ERROR:", repr(e))
         return None
-    return "Success"
+
 
 def receiveData():
-    latest = [0, 0, 0, 0, 0]
+    messages = []
 
     try:
         while pico.in_waiting:
+            msg = pico.readline().decode(errors="replace").strip()
 
-            msg = pico.readline().decode().strip()
+            if msg:
+                messages.append(msg)
 
-            if not msg:
-                continue
+        return messages
 
-            # Rotation finished
-            if msg == "D":
-                latest[4] = 1
-                continue
-
-            parts = msg.split(",")
-
-            # Touch
-            if parts[0] == "T" and len(parts) == 5:
-                latest[0] = int(parts[1])
-                latest[1] = int(parts[2])
-                latest[2] = int(parts[3])
-                latest[3] = int(parts[4])
-
-        return latest
-
-    except (serial.SerialException, ValueError):
+    except serial.SerialException as e:
+        print("RECEIVE ERROR:", repr(e))
         return None
+
+
+try:
+    while True:
+        # Send a test command
+        sendCommand(100, 90, 0)
+
+        time.sleep(0.1)
+
+        # Read everything Pico sent back
+        data = receiveData()
+
+        if data:
+            for msg in data:
+                print("PICO -> PI:", msg)
+        else:
+            print("PICO -> PI: NO DATA")
+
+        time.sleep(1)
+
+except KeyboardInterrupt:
+    print("Exiting...")
+    pico.close()
