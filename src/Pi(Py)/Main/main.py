@@ -40,10 +40,14 @@ def captureFrame():
     for i in range(5):
         frame = get_frame()
         img = cv(frame)
-        if img is not None:
-            color = img[0]["color"]
-        data.append(color)
+        if img:
+            if img[0] is not None:
+                color = img[0]["color"]
+            if color is not None: 
+                data.append(color)
+            
         time.sleep(0.01)
+    if not data: return None
     mode = statistics.mode(data)
     return mode
 
@@ -61,6 +65,7 @@ def obstacleMain(tofs, val3, speed, val, sign, turndir):
                 if captureFrame() is not None: break
                 if getDistances(tofs)[turndir]   >= large_buffer:
                     tracker = False
+                    stopPid()
                     break
         else:
             if counter < 2:
@@ -88,6 +93,7 @@ def parkAlign(tofs, val3, speed, val, sign, turndir, gz_0):
                 if captureFrame() is not None: break
                 if getDistances(tofs)[turndir]   >= large_buffer:
                     tracker = False
+                    stopPid()
                     break
         else:
             if counter < 1:
@@ -150,20 +156,32 @@ def parkAlign(tofs, val3, speed, val, sign, turndir, gz_0):
 def park(turndir, sign):
     stage = 1
     while True:
-        startPid(tofs, 3, turndir,  val, 125)
-        if getDistances(tofs)[turndir]>=18: 
-            stopPid()
-            startPid(tofs, 23, turndir, val, 150)
-            stage = 2
-        elif getDistances(tofs)[turndir] <= 3 and stage == 2:
-            stopPid()
+        dist = getDistances(tofs)[turndir]
+
+        if dist is None: continue
+
+        if stage == 1:
             startPid(tofs, 3, turndir, val, 125)
-            stage = 3
-        elif getDistances(tofs)[turndir] >= 18 and stage == 3:
-            stopPid()
-            gyroPid(getRot(), 150, val4, None, 4)
-            turn(-200, sign*30, sign*(-180))
-            wallAlign(tofs, 3, val2, 4)
+
+            if dist >= 18:
+                stopPid()
+                stage = 2
+
+        elif stage == 2:
+            startPid(tofs, 23, turndir, val, 150)
+
+            if dist <= 3:
+                stopPid()
+                stage = 3
+
+        elif stage == 3:
+            startPid(tofs, 3, turndir, val, 125)
+
+            if dist >= 18:
+                stopPid()
+                gyroPid(getRot(), 150, val4, None, 4)
+                turn(-200, sign*30, sign*(-180))
+                wallAlign(tofs, 3, val2, 4)
             break
         time.sleep(0.01)
     return
@@ -199,4 +217,4 @@ while Run:
 
     #Parallel park
     parkAlign(tofs, val3, 200, val, sign, turndir, gz_0)
-        
+
