@@ -24,14 +24,17 @@ from Sensing.IMU import getRot, angleDiff
 # - gz represents yaw
 
 #==================== PID VALUES ======================
-val2 = [2, 0.01, 0.01] #PID for back
-val = [2, 0.01, 0.01] #PID for tofs
-val3 = [2, 0.01, 0.01] #PID for cx
-val4 = [2, 0.001, 0.001] #Gyro PID
+val2 = [3, 0.001, 0.001] #PID for back
+val = [4, 0.001, 0.001] #PID for tofs
+val3 = [4, 0.001, 0.001] #PID for cx
+val4 = [3, 0.001, 0.001] #Gyro PID
 
 
 #-----------------------------------------------STATE HELPER (PID variables)-------------------------
 def pid_step(error, gains, state, dt):
+    dt = max(dt, 0.001)
+
+
     state["integral"] += error*dt
 
     derivative = (error - state["last_error"])/dt
@@ -152,7 +155,8 @@ def wallAlign(tofs, dist, gains, buffer):
     distances = getDistances(tofs)
     left = distances["rear_left"]
     right = distances["rear_right"]
-    gap = min(left, right)
+    if left is not None or right is not None:
+        gap = min(left, right)
 
     
     while(gap>=dist):
@@ -420,6 +424,7 @@ def gyroPid(gz_0, speed, gains, dist1, rot):
         sendCommand(speed, 0, rot)
     if dist1 is not None:
         sendCommand(speed, 0)
+    if (dist1 is not None and rot is not None) or (dist1 is None and rot is None): return
     while True:
         gz = getRot()
         error = angleDiff(gz, gz_0)
@@ -440,6 +445,7 @@ def gyroPid(gz_0, speed, gains, dist1, rot):
             if data is not None and data[4] == 1: break
         
         front = getDistances(tofs)["front"]
+    
         if dist1 is not None and front is not None and front <= dist1: break
 
         time.sleep(0.01)
