@@ -23,5 +23,10 @@ Documentation for team Vector Drive for WRO Future Engineers 2026
 - Box like, built around battery size
 - Simple parallel-ackerman style steering and spur gear rear wheel drive to minimize space and not overcomplicate it
 
+**- Power Management**
+- Dual Buck Converter System
+- To ensure electrical stability and clean power delivery across high-performance components, the bot implements two separate 5V, 3A Buck Converters
+- Isolation: The two converters are completely independent and not connected to each other.Load Splitting: One buck converter is dedicated entirely to powering the Raspberry Pi 5, preventing sudden voltage drops or blackouts during intensive computational tasks. The second converter runs the pico, isolating them from digital noise and current spikes.
+
 
 
