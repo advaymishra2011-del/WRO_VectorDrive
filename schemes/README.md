@@ -5,13 +5,13 @@ The main wiring diagrams and power distribution of components used
 
 ## Electronics and Component Selection
 
-The electronics system was designed around three main requirements: real-time autonomous control, reliable sensor perception, and low mass and power consumption. The robot uses a Raspberry Pi 5 as the high-level computing platform and a Raspberry Pi Pico as the low-level controller. This separation allows computationally intensive perception and decision-making to run on the Pi while maintaining reliable, deterministic control of the motor, steering servo, encoder and collision sensors through the Pico.
+The electronics system was designed around three main requirements: real-time autonomous control, reliable sensor perception, and low mass and power consumption. The robot uses a Raspberry Pi 3 as the high-level computing platform and a Raspberry Pi Pico as the low-level controller. This separation allows computationally intensive perception and decision-making to run on the Pi while maintaining reliable, deterministic control of the motor, steering servo, encoder and collision sensors through the Pico.
 
 ### Computing and Control
 
-The Raspberry Pi 5 was selected as the main computer because the robot requires real-time camera processing alongside multiple sensor inputs. The Camera Module 3 is used for computer vision, while the five VL53L0X sensors, BNO085 IMU and TCS34725 colour sensor provide additional environmental and vehicle-state information. A Pi Zero 2 W was considered because of its smaller size and lower power consumption, but the Pi 5 provides substantially greater computational headroom for image processing and sensor fusion. We therefore accepted the additional mass and power consumption of the Pi 5 in exchange for greater processing capability and reliability.
+The Raspberry Pi 3 was selected as the main computer because the robot requires real-time camera processing alongside multiple sensor inputs. The Camera Module 3 is used for computer vision, while the five VL53L0X sensors, BNO085 IMU and TCS34725 colour sensor provide additional environmental and vehicle-state information. A Pi Zero 2 W was considered because of its smaller size and lower power consumption, but the Pi 3 provides substantially greater computational headroom for image processing and sensor fusion. We therefore accepted the additional mass and power consumption of the Pi 3 in exchange for greater processing capability and reliability.
 
-The Raspberry Pi Pico is used as a dedicated low-level controller. It controls the DRV8833 motor driver and MG90S steering servo, reads the N20 motor encoder and monitors the four collision switches. This division prevents the Linux operating system on the Pi 5 from directly controlling time-critical functions and allows motor and steering control to remain responsive even while the Pi is processing camera data. Communication between the two computers is performed using UART.
+The Raspberry Pi Pico is used as a dedicated low-level controller. It controls the DRV8833 motor driver and MG90S steering servo, reads the N20 motor encoder and monitors the four collision switches. This division prevents the Linux operating system on the Pi 3 from directly controlling time-critical functions and allows motor and steering control to remain responsive even while the Pi is processing camera data. Communication between the two computers is performed using UART.
 
 ### Drive System
 
@@ -29,7 +29,7 @@ The robot is powered by a 7.4 V nominal, 1500 mAh, 25C 2S LiPo battery. A 2S bat
 
 E=VQ=(7.4)(1.5)=11.1 Wh.
 
-The battery is connected to a regulated 5 V supply, which powers the Raspberry Pi 5, Raspberry Pi Pico and MG90S servo. The same regulated 5 V rail is supplied to the DRV8833 motor driver, allowing the N20 motor to operate at approximately 5 V. Operating the 6 V motor at 5 V provides a conservative operating voltage and reduces the need for an additional motor-voltage regulator, simplifying the power system and reducing weight and wiring.
+The battery is connected to a regulated 5 V supply, which powers the Raspberry Pi 3, Raspberry Pi Pico and MG90S servo. The same regulated 5 V rail is supplied to the DRV8833 motor driver, allowing the N20 motor to operate at approximately 5 V. Operating the 6 V motor at 5 V provides a conservative operating voltage and reduces the need for an additional motor-voltage regulator, simplifying the power system and reducing weight and wiring.
 
 The power system was designed so that the motor current does not pass through the Raspberry Pi or Pico. The DRV8833 acts as the power interface between the Pico's control signals and the motor.
 
@@ -47,9 +47,9 @@ A TCS34725 RGB colour sensor is used as a dedicated colour measurement device. A
 
 ### Camera and Computer Vision
 
-The Raspberry Pi Camera Module 3 is the primary visual sensor. It provides the image data required for computer-vision algorithms running on the Raspberry Pi 5. The camera allows the robot to detect and analyse features of the track and surrounding environment that cannot be represented by a single distance measurement.
+The Raspberry Pi Camera Module 3 is the primary visual sensor. It provides the image data required for computer-vision algorithms running on the Raspberry Pi 3. The camera allows the robot to detect and analyse features of the track and surrounding environment that cannot be represented by a single distance measurement.
 
-A suitable 15-pin to 22-pin camera FPC cable is used to connect the Camera Module 3 to the Raspberry Pi 5, since the two devices use different physical connector formats.
+A suitable 15-pin to 22-pin camera FPC cable is used to connect the Camera Module 3 to the Raspberry Pi 3, since the two devices use different physical connector formats.
 
 ### Collision Detection
 
